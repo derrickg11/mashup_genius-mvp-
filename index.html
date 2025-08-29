@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Music Suggestion App — MVP</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --panel: #12141a;
+      --muted: #9aa1ac;
+      --text: #e9eef7;
+      --accent: #7c5cff;
+      --accent-2: #2dd4bf;
+      --danger: #ef4444;
+      --card: #171923;
+      --border: #232634;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    a { color: var(--accent-2); text-decoration: none; }
+
+    /* Layout */
+    header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 16px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(124,92,255,0.08), rgba(45,212,191,0.05));
+    }
+    header .brand { font-weight: 800; letter-spacing: 0.4px; }
+    header nav { display:flex; gap: 8px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+    /* Buttons */
+    .btn { background: var(--accent); color: white; border: none; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost { background: transparent; color: var(--muted); }
+    .btn-danger { background: var(--danger); }
+
+    /* Panels */
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+
+    /* Forms */
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    input[type="text"], select, input[type="number"] {
+      background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none;
+    }
+
+    /* Cards */
+    .card { display:flex; gap:12px; background: var(--card); border:1px solid var(--border); border-radius: 14px; padding: 12px; }
+    .art { width:64px; height:64px; border-radius:10px; background: #222; background-size: cover; background-position: center; border:1px solid var(--border); }
+    .card h4 { margin: 2px 0 2px; font-size: 15px; }
+    .meta { color: var(--muted); font-size: 12px; display:flex; gap:10px; align-items:center; }
+    .badges { display:flex; gap:6px; margin-top: 6px; flex-wrap: wrap; }
+    .badge { font-size: 11px; color:#cfe9ff; background: #0c2434; border:1px solid #183247; padding: 2px 8px; border-radius:999px; }
+    .badge.energy { background:#211334; border-color:#3d2561; color:#e7dbff; }
+
+    /* Sections */
+    section { display:none; }
+    section.active { display:block; }
+
+    /* Lists */
+    .list { display:flex; flex-direction:column; gap: 12px; }
+
+    /* Footer */
+    footer { padding: 40px 16px; color: var(--muted); text-align:center; }
+
+    .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .spacer { flex:1; }
+    .pill { padding: 4px 10px; border-radius: 999px; border:1px solid var(--border); background: var(--card); color: var(--muted); font-size: 12px; }
+
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); background: #0e1117; color:#b3b9c5; }
+
+    /* Header nav buttons — rounded + minimal (Wordle-ish) */
+    header nav button {
+        background: var(--card);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 999px;   /* pill */
+        padding: 8px 18px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    header nav button:hover {
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
+    }
+    header nav button:focus-visible {
+        outline: 2px solid var(--accent-2);
+        outline-offset: 2px;
+    }
+
+    /* Crate number — clean pill badge inline */
+    #crateCount {
+        margin-left: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--accent-2);
+        color: #0b0c10;
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    /* --- Mobile adjustments --- */
+    @media (max-width: 640px) {
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    header nav {
+        width: 100%;
+        justify-content: space-between;
+    }
+    header nav button {
+        flex: 1;
+        padding: 10px;
+        font-size: 13px;
+    }
+
+    .container {
+        padding: 12px;
+    }
+
+    .grid {
+        grid-template-columns: 1fr; /* stack form fields */
+    }
+
+    .card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .art {
+        width: 100%;
+        height: 160px;
+        border-radius: 12px;
+    }
+    .card h4 {
+        font-size: 14px;
+    }
+
+    .row {
+        flex-wrap: wrap;
+    }
+    .btn,
+    .btn-outline,
+    .btn-ghost,
+    .btn-danger {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+    }
+
+
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">MASHUP GENIUS <span class="pill">mvp</span></div>
+    <nav>
+      <button class="btn-ghost" onclick="showSection('search')">Search</button>
+      <button class="btn-ghost" onclick="showSection('suggestions')">Suggestions</button>
+      <button class="btn-ghost" onclick="showSection('crate')">Crate <span id="crateCount" class="pill">0</span></button>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <!-- SEARCH SECTION -->
+    <section id="search" class="active">
+      <div class="panel">
+        <h2>Find Tracks</h2>
+        <p style="color:var(--muted); margin-top: 6px;">Simple MVP: search by track / artist / genre. Optional BPM & key help steer suggestions.</p>
+        <div class="grid" style="margin-top:14px;">
+          <div class="field" style="grid-column: span 6;">
+            <label class="label">Search term</label>
+            <input id="q" type="text" placeholder="e.g. Rap, Techno, Mariah Carey, Rooftop Vibes" />
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label class="label">BPM</label>
+            <input id="bpm" type="number" min="60" max="200" placeholder="e.g. 128" />
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label class="label">Key</label>
+            <select id="key">
+              <option value="">Any</option>
+              <option>Am</option><option>Bm</option><option>Cm</option><option>Dm</option>
+              <option>Em</option><option>Fm</option><option>Gm</option>
+              <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label class="label">Energy (min)</label>
+            <select id="energyMin">
+              <option value="0">0.0</option>
+              <option value="0.4">0.4</option>
+              <option value="0.6">0.6</option>
+              <option value="0.8">0.8</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" onclick="handleSearch()">Get Suggestions</button>
+          <button class="btn btn-outline" onclick="resetSearch()">Clear</button>
+          <span class="spacer"></span>
+          <span class="kbd">Tip: / to focus search</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUGGESTIONS SECTION -->
+    <section id="suggestions">
+      <div class="panel">
+        <div class="row">
+          <h2 style="margin:0;">Suggestions</h2>
+          <span id="contextLabel" class="pill">—</span>
+          <span class="spacer"></span>
+          <button class="btn-outline" onclick="refilter('safer')">Safer</button>
+          <button class="btn-outline" onclick="refilter('spicier')">Spicier</button>
+          <button class="btn-outline" onclick="refilter('slower')">Slower</button>
+          <button class="btn-outline" onclick="refilter('faster')">Faster</button>
+        </div>
+        <div id="suggestionList" class="list" style="margin-top:16px;"></div>
+      </div>
+    </section>
+
+    <!-- CRATE SECTION -->
+    <section id="crate">
+      <div class="panel">
+        <div class="row">
+          <h2 style="margin:0;">Your Crate</h2>
+          <span class="spacer"></span>
+          <button class="btn-outline" onclick="exportCrate('text')">Copy as List</button>
+          <button class="btn-outline" onclick="exportCrate('csv')">Export CSV</button>
+          <button class="btn-outline" onclick="clearCrate()">Clear</button>
+        </div>
+        <div id="crateList" class="list" style="margin-top:16px;"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <small>Static MVP. No backend. Mock data only. Built for a quick demo.</small>
+  </footer>
+
+  <audio id="player" preload="none"></audio>
+
+  <script>
+    // ---------------------------
+    // Mock dataset (simplified)
+    // ---------------------------
+    const MOCK_TRACKS = [
+      { id:'t1', title:'Sunrise Driver', artists:['Nova Lumen'], genre:'Melodic Techno', bpm:124, key:'Am', camelot:'8A', energy:0.72, artworkUrl:'', previewUrl:'' },
+      { id:'t2', title:'City Pulse', artists:['Roadhouse'], genre:'Tech House', bpm:126, key:'Bm', camelot:'10A', energy:0.78, artworkUrl:'', previewUrl:'' },
+      { id:'t3', title:'Neon Bones', artists:['Karra'], genre:'Electro', bpm:128, key:'Em', camelot:'9A', energy:0.86, artworkUrl:'', previewUrl:'' },
+      { id:'t4', title:'Hold Tight', artists:['Deepline'], genre:'House', bpm:124, key:'Gm', camelot:'6A', energy:0.66, artworkUrl:'', previewUrl:'' },
+      { id:'t5', title:'Night Ferry', artists:['Doxa'], genre:'Progressive House', bpm:126, key:'Am', camelot:'8A', energy:0.74, artworkUrl:'', previewUrl:'' },
+      { id:'t6', title:'Glass Tiger', artists:['Satori'], genre:'Indie Dance', bpm:120, key:'Cm', camelot:'5A', energy:0.63, artworkUrl:'', previewUrl:'' },
+      { id:'t7', title:'Rooftop 3AM', artists:['Escher'], genre:'Techno', bpm:130, key:'Dm', camelot:'7A', energy:0.9, artworkUrl:'', previewUrl:'' },
+      { id:'t8', title:'Velvet Riser', artists:['Phaedra'], genre:'Deep House', bpm:122, key:'Em', camelot:'9A', energy:0.58, artworkUrl:'', previewUrl:'' },
+      { id:'t9', title:'Carbon Lanes', artists:['Sable'], genre:'Breaks', bpm:134, key:'Fm', camelot:'4A', energy:0.84, artworkUrl:'', previewUrl:'' },
+      { id:'t10', title:'Tunnel Bloom', artists:['Margaux'], genre:'Tech House', bpm:126, key:'Am', camelot:'8A', energy:0.7, artworkUrl:'', previewUrl:'' },
+      { id:'t11', title:'Static Ocean', artists:['Reza'], genre:'Minimal', bpm:124, key:'Bm', camelot:'10A', energy:0.55, artworkUrl:'', previewUrl:'' },
+      { id:'t12', title:'Night Arcade', artists:['Valis'], genre:'Electro', bpm:128, key:'Gm', camelot:'6A', energy:0.82, artworkUrl:'', previewUrl:'' }
+    ];
+
+    // ---------------------------
+    // App State (in-memory + crate in localStorage)
+    // ---------------------------
+    const state = {
+      suggestions: [],
+      context: { q:'', bpm:null, key:'', energyMin:0 },
+      crate: loadCrate()
+    };
+
+    function saveCrate() { localStorage.setItem('crate', JSON.stringify(state.crate)); updateCrateCount(); }
+    function loadCrate() { try { return JSON.parse(localStorage.getItem('crate')) || []; } catch { return []; } }
+    function updateCrateCount(){ document.getElementById('crateCount').textContent = state.crate.length; }
+
+    // ---------------------------
+    // Navigation
+    // ---------------------------
+    function showSection(id){
+      document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if(id === 'crate') renderCrate();
+    }
+
+    // Keyboard focus shortcut
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === '/') { e.preventDefault(); document.getElementById('q').focus(); }
+    });
+
+    // ---------------------------
+    // Search & Suggest
+    // ---------------------------
+    function handleSearch(){
+      const q = document.getElementById('q').value.trim().toLowerCase();
+      const bpmVal = document.getElementById('bpm').value;
+      const key = document.getElementById('key').value;
+      const energyMin = parseFloat(document.getElementById('energyMin').value || '0');
+
+      state.context = { q, bpm: bpmVal ? Number(bpmVal) : null, key, energyMin };
+
+      // Filter mock data
+      let results = MOCK_TRACKS.filter(t => {
+        const matchesQ = !q || [t.title, ...t.artists, t.genre].join(' ').toLowerCase().includes(q);
+        const matchesBpm = !state.context.bpm || Math.abs(t.bpm - state.context.bpm) <= 4; // +/- 4 BPM window
+        const matchesKey = !state.context.key || t.key === state.context.key;
+        const matchesEnergy = (t.energy >= energyMin);
+        return matchesQ && matchesBpm && matchesKey && matchesEnergy;
+      });
+
+      // naive sort: closest bpm & higher energy first
+      results.sort((a,b)=>{
+        const bpmA = state.context.bpm != null ? Math.abs(a.bpm - state.context.bpm) : 0;
+        const bpmB = state.context.bpm != null ? Math.abs(b.bpm - state.context.bpm) : 0;
+        if(bpmA !== bpmB) return bpmA - bpmB;
+        return b.energy - a.energy;
+      });
+
+      state.suggestions = results.slice(0, 10);
+      document.getElementById('contextLabel').textContent = buildContextLabel();
+      renderSuggestions();
+      showSection('suggestions');
+    }
+
+    function resetSearch(){
+      document.getElementById('q').value = '';
+      document.getElementById('bpm').value = '';
+      document.getElementById('key').value = '';
+      document.getElementById('energyMin').value = '0';
+      state.context = { q:'', bpm:null, key:'', energyMin:0 };
+      state.suggestions = [];
+      document.getElementById('suggestionList').innerHTML = '';
+      document.getElementById('contextLabel').textContent = '—';
+    }
+
+    function buildContextLabel(){
+      const parts = [];
+      if(state.context.q) parts.push(`q:"${state.context.q}"`);
+      if(state.context.bpm) parts.push(`bpm:${state.context.bpm}`);
+      if(state.context.key) parts.push(`key:${state.context.key}`);
+      if(state.context.energyMin) parts.push(`energy≥${state.context.energyMin}`);
+      return parts.length ? parts.join(' · ') : 'No filters';
+    }
+
+    // Quick refilters
+    function refilter(mode){
+      let results = [...MOCK_TRACKS];
+      const { bpm, energyMin, key, q } = state.context;
+      results = results.filter(t => (!q || [t.title, ...t.artists, t.genre].join(' ').toLowerCase().includes(q)));
+      if(key) results = results.filter(t => t.key === key);
+      if(energyMin) results = results.filter(t => t.energy >= energyMin);
+
+      if(mode === 'safer') {
+        // closer BPM, same key if set, prefer lower explore (energy moderate)
+        if(bpm) results.sort((a,b)=> Math.abs(a.bpm-bpm) - Math.abs(b.bpm-bpm));
+        results = results.filter(t => t.energy >= (energyMin||0) && t.energy <= 0.8);
+      }
+      if(mode === 'spicier') {
+        // allow wider BPM drift & higher energy
+        if(bpm) results = results.filter(t => Math.abs(t.bpm - bpm) <= 8);
+        results.sort((a,b)=> b.energy - a.energy);
+      }
+      if(mode === 'slower' && bpm){ results = results.filter(t => t.bpm <= bpm).sort((a,b)=> a.bpm - b.bpm); }
+      if(mode === 'faster' && bpm){ results = results.filter(t => t.bpm >= bpm).sort((a,b)=> a.bpm - b.bpm); }
+
+      state.suggestions = results.slice(0,10);
+      renderSuggestions();
+    }
+
+    // ---------------------------
+    // Renderers
+    // ---------------------------
+    function renderSuggestions(){
+      const list = document.getElementById('suggestionList');
+      list.innerHTML = '';
+      if(state.suggestions.length === 0){
+        list.innerHTML = `<div style="color:var(--muted)">No suggestions yet. Try a search.</div>`;
+        return;
+      }
+      state.suggestions.forEach(t => list.appendChild(trackCard(t, { showAdd:true })));
+    }
+
+    function renderCrate(){
+      const list = document.getElementById('crateList');
+      list.innerHTML = '';
+      if(state.crate.length === 0){
+        list.innerHTML = `<div style="color:var(--muted)">Crate is empty.</div>`;
+        return;
+      }
+      state.crate.forEach((t, idx) => list.appendChild(crateRow(t, idx)));
+    }
+
+    function trackCard(t, opts={}){
+      const card = document.createElement('div');
+      card.className = 'card';
+      const art = document.createElement('div');
+      art.className = 'art';
+      art.style.backgroundImage = `linear-gradient(135deg, #1f2937, #0f172a)`;
+
+      const main = document.createElement('div');
+      main.style.flex = '1';
+
+      const title = document.createElement('h4');
+      title.textContent = `${t.title} — ${t.artists.join(', ')}`;
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `<span>${t.genre}</span><span>${t.bpm} BPM</span><span>${t.key} (${t.camelot})</span>`;
+
+      const badges = document.createElement('div');
+      badges.className = 'badges';
+      const energy = document.createElement('span');
+      energy.className = 'badge energy';
+      energy.textContent = `Energy ${t.energy.toFixed(2)}`;
+      badges.appendChild(energy);
+
+      const row = document.createElement('div');
+      row.className = 'row';
+      const playBtn = document.createElement('button');
+      playBtn.className = 'btn btn-outline';
+      playBtn.textContent = 'Preview';
+      playBtn.onclick = () => previewTrack(t);
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn';
+      addBtn.textContent = 'Add to Crate';
+      addBtn.onclick = () => addToCrate(t);
+
+      row.appendChild(playBtn);
+      if(opts.showAdd) row.appendChild(addBtn);
+
+      main.appendChild(title);
+      main.appendChild(meta);
+      main.appendChild(badges);
+      main.appendChild(row);
+      card.appendChild(art);
+      card.appendChild(main);
+      return card;
+    }
+
+    function crateRow(t, idx){
+      const row = document.createElement('div');
+      row.className = 'card';
+      const left = document.createElement('div'); left.className='art'; left.style.backgroundImage = `linear-gradient(135deg, #111827, #0b1220)`;
+      const main = document.createElement('div'); main.style.flex='1';
+      const h4 = document.createElement('h4'); h4.textContent = `${idx+1}. ${t.title} — ${t.artists.join(', ')}`;
+      const meta = document.createElement('div'); meta.className='meta'; meta.innerHTML = `<span>${t.genre}</span><span>${t.bpm} BPM</span><span>${t.key} (${t.camelot})</span>`;
+      const actions = document.createElement('div'); actions.className='row';
+      const preview = document.createElement('button'); preview.className='btn btn-outline'; preview.textContent='Preview'; preview.onclick = ()=> previewTrack(t);
+      const remove = document.createElement('button'); remove.className='btn btn-danger'; remove.textContent='Remove'; remove.onclick = ()=> removeFromCrate(idx);
+      actions.appendChild(preview); actions.appendChild(remove);
+      main.appendChild(h4); main.appendChild(meta); main.appendChild(actions);
+      row.appendChild(left); row.appendChild(main);
+      return row;
+    }
+
+    // ---------------------------
+    // Crate ops
+    // ---------------------------
+    function addToCrate(t){
+      if(!state.crate.find(x => x.id===t.id)){
+        state.crate.push(t); saveCrate();
+      }
+    }
+    function removeFromCrate(index){ state.crate.splice(index,1); saveCrate(); renderCrate(); }
+    function clearCrate(){ if(confirm('Clear crate?')){ state.crate = []; saveCrate(); renderCrate(); } }
+
+    function exportCrate(mode='text'){
+      if(state.crate.length===0) { alert('Crate is empty'); return; }
+      if(mode==='text'){
+        const text = state.crate.map((t,i)=> `${i+1}. ${t.title} — ${t.artists.join(', ')} · ${t.bpm} BPM · ${t.key}`).join('\n');
+        navigator.clipboard.writeText(text).then(()=> alert('Copied list to clipboard!'));
+      } else if(mode==='csv'){
+        const header = 'title,artists,genre,bpm,key,camelot,energy';
+        const rows = state.crate.map(t=> [
+          csv(t.title), csv(t.artists.join(' / ')), csv(t.genre), t.bpm, t.key, t.camelot, t.energy
+        ].join(','));
+        const csvStr = [header, ...rows].join('\n');
+        const blob = new Blob([csvStr], { type:'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'crate.csv'; a.click(); URL.revokeObjectURL(url);
+      }
+    }
+    function csv(s){ return '"'+String(s).replaceAll('"','""')+'"'; }
+
+    // ---------------------------
+    // Audio preview (placeholder)
+    // ---------------------------
+    function previewTrack(t){
+      const audio = document.getElementById('player');
+      if(!t.previewUrl){
+        // No real preview in mock — play a tiny beep-ish tone using WebAudio as feedback
+        try { beep(); } catch { alert('Preview not available in mock.'); }
+        return;
+      }
+      if(audio.src !== t.previewUrl){ audio.src = t.previewUrl; }
+      audio.currentTime = 0; audio.play();
+    }
+
+    function beep(){
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type='sine'; o.frequency.value = 880; // A5
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.value = 0.05; o.start();
+      setTimeout(()=>{ o.stop(); ctx.close(); }, 180);
+    }
+
+    // ---------------------------
+    // Init
+    // ---------------------------
+    updateCrateCount();
+
+    // Demo: quick seed render so the page doesn’t feel empty
+    state.suggestions = MOCK_TRACKS.slice(0,5);
+    document.getElementById('contextLabel').textContent = 'demo seed';
+    renderSuggestions();
+
+  </script>
+</body>
+</html>
